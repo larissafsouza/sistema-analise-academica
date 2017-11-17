@@ -265,96 +265,9 @@ function countChecked() {
     }
 }
 
-function init_frequencyPerPeriod() {
-  var categories = [];
-  var quantity_activities = [];
-
-  $.ajax({
-    url: DASHBOARD_URL + '/activities/frequency-per-period',
-    type: 'GET',
-    data: {
-       ano_ingresso: 2010
-    },
-    success: function(result) {
-      for (var i=0; i < result.length; i++) {
-        categories.push(result[i]._id.ano + '/' + result[i]._id.periodo);
-        quantity_activities.push(result[i].quantidade);
-      }
-      init_frequencyPerPeriodGraph(quantity_activities, categories);
-    }
-  });
-}
-
-function init_frequencyPerPeriodGraph(quantity_activities, categories) {
-  Highcharts.chart('frequencyPerPeriod', {
-    chart: {
-        type: 'column'
-    },
-    title: {
-        text: 'Frequência de Atividades acadêmicas'
-    },
-    xAxis: {
-        categories: categories,
-        crosshair: true
-    },
-    yAxis: [{
-        min: 0,
-        title: {
-            text: 'Atividades Acadêmica',
-            style: {
-                color: Highcharts.getOptions().colors[0]
-            }
-        }
-    }],
-    tooltip: {
-        headerFormat: '<span style="font-size:10px">{point.key}</span><table>',
-        pointFormat: '<tr><td style="color:{series.color};padding:0">{series.name}: </td>' +
-            '<td style="padding:0"><b>{point.y}</b></td></tr>',
-        footerFormat: '</table>',
-        shared: true,
-        useHTML: true
-    },
-    plotOptions: {
-        column: {
-            pointPadding: 0.2,
-            borderWidth: 0
-        }
-    },
-    series: [{
-        name: 'Atividades',
-        data: quantity_activities,
-        yAxis: 0
-    }],
-    credits: {
-      enabled: false
-    },
-  });
-}
-
-function init_frequencyEvasionPerYear() {
+function init_totalEvasionPerYear() {
   var years = [];
-  var quantity_activities = [];
-
-  $.ajax({
-    url: DASHBOARD_URL + '/activities/frequency-per-year',
-    type: 'GET',
-    data: {
-       ano_ingresso: 2010
-    },
-    success: function(result) {
-      for (var i=0; i < result.length; i++) {
-        years.push(result[i]._id.ano);
-        quantity_activities.push(result[i].quantidade);
-      }
-      init_evasionsPerYear(years, quantity_activities);
-    }
-  });
-}
-
-function init_evasionsPerYear(yearsActivities, quantity_activities) {
-  var years = [];
-  var yearsEvasions = [];
-  var quantity_evasion = [];
+  var quantity_evasions = [];
 
   $.ajax({
     url: DASHBOARD_URL + '/evasions/total-evasion-per-year',
@@ -364,29 +277,21 @@ function init_evasionsPerYear(yearsActivities, quantity_activities) {
     },
     success: function(result) {
       for (var i=0; i < result.length; i++) {
-        yearsEvasions.push(result[i]._id.year_exit);
-        quantity_evasion.push(result[i].quantity);
+        years.push(result[i]._id.year_exit);
+        quantity_evasions.push(result[i].quantity);
       }
-
-      if (yearsActivities.length > yearsEvasions.length) {
-        years = yearsActivities;
-      } else {
-        years = yearsEvasions;
-      }
-
-      init_frequencyEvasionPerYearGraph(years, quantity_activities, quantity_evasion);
+      init_totalEvasionPerYearGraph(quantity_evasions, years);
     }
   });
 }
 
-
-function init_frequencyEvasionPerYearGraph(years, quantity_activities, quantity_evasion) {
-  Highcharts.chart('frequencyEvasionPerYear', {
+function init_totalEvasionPerYearGraph(quantity_evasions, years) {
+  Highcharts.chart('totalEvasionPerYearGraph', {
     chart: {
         type: 'column'
     },
     title: {
-        text: 'Análise de atividades acadêmicas e evasão'
+        text: 'Quantidade de Evasões'
     },
     xAxis: {
         categories: years,
@@ -395,7 +300,7 @@ function init_frequencyEvasionPerYearGraph(years, quantity_activities, quantity_
     yAxis: [{
         min: 0,
         title: {
-            text: 'Atividades Acadêmica',
+            text: 'Quantidade de Evasões',
             style: {
                 color: Highcharts.getOptions().colors[0]
             }
@@ -416,12 +321,75 @@ function init_frequencyEvasionPerYearGraph(years, quantity_activities, quantity_
         }
     },
     series: [{
-        name: 'Atividades',
-        data: quantity_activities,
+        name: 'Evasões',
+        data: quantity_evasions,
         yAxis: 0
-    }, {
+    }],
+    credits: {
+      enabled: false
+    },
+  });
+}
+
+function init_typeEvasionPerYear() {
+  var years = [];
+  var quantity_evasions = [];
+
+  $.ajax({
+    url: DASHBOARD_URL + '/evasions/type-evasion-per-year',
+    type: 'GET',
+    data: {
+       year_entry: 2010,
+       type_evasion: "formado"
+    },
+    success: function(result) {
+      for (var i=0; i < result.length; i++) {
+        years.push(result[i]._id.year_exit);
+        quantity_evasions.push(result[i].quantity);
+      }
+      init_typeEvasionPerYearGraphic(years, quantity_evasions);
+    }
+  });
+}
+
+function init_typeEvasionPerYearGraphic(years, quantity_evasions) {
+  Highcharts.chart('typeEvasionPerYearGraphic', {
+    chart: {
+        type: 'column'
+    },
+    title: {
+        text: 'Análise do tipo de evasão'
+    },
+    xAxis: {
+        categories: years,
+        crosshair: true
+    },
+    yAxis: [{
+        min: 0,
+        title: {
+            text: 'Evasão',
+            style: {
+                color: Highcharts.getOptions().colors[0]
+            }
+        }
+    }],
+    tooltip: {
+        headerFormat: '<span style="font-size:10px">{point.key}</span><table>',
+        pointFormat: '<tr><td style="color:{series.color};padding:0">{series.name}: </td>' +
+            '<td style="padding:0"><b>{point.y}</b></td></tr>',
+        footerFormat: '</table>',
+        shared: true,
+        useHTML: true
+    },
+    plotOptions: {
+        column: {
+            pointPadding: 0.2,
+            borderWidth: 0
+        }
+    },
+    series: [{
         name: 'Evasão',
-        data: quantity_evasion,
+        data: quantity_evasions,
         yAxis: 0
     }]
   });
@@ -5218,7 +5186,7 @@ if (typeof NProgress != 'undefined') {
 		init_CustomNotification();
 		init_autosize();
 		init_autocomplete();
-    init_frequencyPerPeriod();
-    init_frequencyEvasionPerYear();
+    init_totalEvasionPerYear();
+    init_typeEvasionPerYear();
 
 	});

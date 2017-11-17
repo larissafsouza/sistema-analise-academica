@@ -265,42 +265,40 @@ function countChecked() {
     }
 }
 
-function init_frequencyPerPeriod() {
-  var categories = [];
-  var quantity_activities = [];
+function init_averageApprovedSubjects() {
+  console.log('averages');
+  var courses = [];
+  var averages = [];
 
   $.ajax({
-    url: DASHBOARD_URL + '/activities/frequency-per-period',
+    url: DASHBOARD_URL + '/courses/average-approved-subjects',
     type: 'GET',
-    data: {
-       ano_ingresso: 2010
-    },
     success: function(result) {
       for (var i=0; i < result.length; i++) {
-        categories.push(result[i]._id.ano + '/' + result[i]._id.periodo);
-        quantity_activities.push(result[i].quantidade);
+        courses.push(result[i]._id);
+        averages.push(result[i].media);
       }
-      init_frequencyPerPeriodGraph(quantity_activities, categories);
+      init_averageApprovedSubjectsGraphic(courses, averages);
     }
   });
 }
 
-function init_frequencyPerPeriodGraph(quantity_activities, categories) {
-  Highcharts.chart('frequencyPerPeriod', {
+function init_averageApprovedSubjectsGraphic(courses, averages) {
+  Highcharts.chart('averageApprovedSubjects', {
     chart: {
         type: 'column'
     },
     title: {
-        text: 'Frequência de Atividades acadêmicas'
+        text: 'Média'
     },
     xAxis: {
-        categories: categories,
+        categories: courses,
         crosshair: true
     },
     yAxis: [{
         min: 0,
         title: {
-            text: 'Atividades Acadêmica',
+            text: 'Disciplinas',
             style: {
                 color: Highcharts.getOptions().colors[0]
             }
@@ -321,8 +319,8 @@ function init_frequencyPerPeriodGraph(quantity_activities, categories) {
         }
     },
     series: [{
-        name: 'Atividades',
-        data: quantity_activities,
+        name: 'Médias',
+        data: averages,
         yAxis: 0
     }],
     credits: {
@@ -331,100 +329,132 @@ function init_frequencyPerPeriodGraph(quantity_activities, categories) {
   });
 }
 
-function init_frequencyEvasionPerYear() {
-  var years = [];
-  var quantity_activities = [];
+function init_totalFrequencyCoursePerYear() {
+  var courses = [];
+  var quantity_frequency = [];
+
+  var data = [];
 
   $.ajax({
-    url: DASHBOARD_URL + '/activities/frequency-per-year',
+    url: DASHBOARD_URL + '/courses/total-frequency-per-period',
     type: 'GET',
     data: {
-       ano_ingresso: 2010
+       year_entry: 2014,
+       year: 2014,
+       period: "1A"
     },
     success: function(result) {
-      for (var i=0; i < result.length; i++) {
-        years.push(result[i]._id.ano);
-        quantity_activities.push(result[i].quantidade);
-      }
-      init_evasionsPerYear(years, quantity_activities);
+      init_frequencyCoursePerYear(result[0].total);
     }
   });
 }
 
-function init_evasionsPerYear(yearsActivities, quantity_activities) {
-  var years = [];
-  var yearsEvasions = [];
-  var quantity_evasion = [];
+function calculate_percentage(value, total) {
+  return ((value * 100) / total);
+}
+
+function init_frequencyCoursePerYear(total) {
+  var courses = [];
+  var quantity_frequency = [];
+
+  var data = [];
 
   $.ajax({
-    url: DASHBOARD_URL + '/evasions/total-evasion-per-year',
+    url: DASHBOARD_URL + '/courses/frequency-per-period',
     type: 'GET',
     data: {
-       year_entry: 2010
+       year_entry: 2014,
+       year: 2014,
+       period: "1A"
     },
     success: function(result) {
       for (var i=0; i < result.length; i++) {
-        yearsEvasions.push(result[i]._id.year_exit);
-        quantity_evasion.push(result[i].quantity);
-      }
+        quantity = parseFloat((Math.round(calculate_percentage(result[i].quantity, total) * 100) / 100).toFixed(1));
 
-      if (yearsActivities.length > yearsEvasions.length) {
-        years = yearsActivities;
-      } else {
-        years = yearsEvasions;
+        data.push({
+          name: result[i]._id.nome_ativ_curricular,
+          y: quantity,
+          drilldown: result[i]._id.nome_ativ_curricular
+        })
       }
-
-      init_frequencyEvasionPerYearGraph(years, quantity_activities, quantity_evasion);
+      init_frequencyCoursePerYearGraphic(data);
     }
   });
 }
 
+function init_situationPerPeriod(dataPrincipal, name, dataLength, i) {
+  $.ajax({
+    url: DASHBOARD_URL + '/courses/situation-per-period',
+    type: 'GET',
+    data: {
+       course: name,
+       year_entry: 2014,
+       year: 2014,
+       period: "1A"
+    },
+    success: function(result) {
+      var data = [];
+      for (var j=0; j < result.length; j++) {
+        var descricao_situacao = result[j]._id.descricao_situacao;
+        var quantity = result[j].quantity
+        var array = [descricao_situacao, quantity]
+        data.push(array)
+      }
 
-function init_frequencyEvasionPerYearGraph(years, quantity_activities, quantity_evasion) {
-  Highcharts.chart('frequencyEvasionPerYear', {
-    chart: {
-        type: 'column'
-    },
-    title: {
-        text: 'Análise de atividades acadêmicas e evasão'
-    },
-    xAxis: {
-        categories: years,
-        crosshair: true
-    },
-    yAxis: [{
-        min: 0,
-        title: {
-            text: 'Atividades Acadêmica',
-            style: {
-                color: Highcharts.getOptions().colors[0]
+      $seriesDrillDown.push({
+        'name': name,
+        'id': name,
+        'data': data
+      });
+
+      if (dataLength == i + 1) {
+        Highcharts.chart('container', {
+            chart: {
+                type: 'pie'
+            },
+            title: {
+                text: 'Frequência nas Disciplinas'
+            },
+            subtitle: {
+                text: 'Clique na disciplina que deseja obter detalhes de desempenho'
+            },
+            plotOptions: {
+              pie: {
+                  allowPointSelect: true,
+                  cursor: 'pointer',
+                  dataLabels: {
+                    enabled: false
+                  },
+                  showInLegend: true
+              }
+            },
+            tooltip: {
+                headerFormat: '<span style="font-size:11px">{series.name}</span><br>',
+                pointFormat: '<span style="color:{point.color}">{point.name}</span>: <b>{point.y:.2f}%</b> of total<br/>'
+            },
+            series: [{
+                name: 'Brands',
+                colorByPoint: true,
+                data: dataPrincipal
+            }],
+            drilldown: {
+              series: $seriesDrillDown
             }
-        }
-    }],
-    tooltip: {
-        headerFormat: '<span style="font-size:10px">{point.key}</span><table>',
-        pointFormat: '<tr><td style="color:{series.color};padding:0">{series.name}: </td>' +
-            '<td style="padding:0"><b>{point.y}</b></td></tr>',
-        footerFormat: '</table>',
-        shared: true,
-        useHTML: true
-    },
-    plotOptions: {
-        column: {
-            pointPadding: 0.2,
-            borderWidth: 0
-        }
-    },
-    series: [{
-        name: 'Atividades',
-        data: quantity_activities,
-        yAxis: 0
-    }, {
-        name: 'Evasão',
-        data: quantity_evasion,
-        yAxis: 0
-    }]
+        });
+      }
+    }
   });
+}
+
+function init_frequencyCoursePerYearGraphic(data) {
+  $seriesDrillDown = [];
+
+  for (var i=0; i < data.length; i++) {
+    var name =  data[i].name;
+    var id = data[i].name;
+    var arrayData = [];
+    init_situationPerPeriod(data, name, data.length, i);
+  }
 }
 
 
@@ -5218,7 +5248,7 @@ if (typeof NProgress != 'undefined') {
 		init_CustomNotification();
 		init_autosize();
 		init_autocomplete();
-    init_frequencyPerPeriod();
-    init_frequencyEvasionPerYear();
+    init_averageApprovedSubjects();
+    init_totalFrequencyCoursePerYear();
 
 	});
